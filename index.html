@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CODEX AI Interview Simulator | Auth Portal</title>
+    <meta name="description" content="Secure Login and Registration for CODEX AI Interview Simulator platform." />
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              heading: ['Outfit', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            },
+            colors: {
+              slate: {
+                950: '#030712',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    
+    <!-- React & Dependencies -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+      body {
+        background-color: #030712;
+        color: #f8fafc;
+        font-family: 'Inter', sans-serif;
+        overflow-x: hidden;
+      }
+      .font-heading { font-family: 'Outfit', sans-serif; }
+      .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+      @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-12px); }
+      }
+      @keyframes pulseGlow {
+        0%, 100% { opacity: 0.35; transform: scale(1); }
+        50% { opacity: 0.65; transform: scale(1.08); }
+      }
+
+      .animate-float { animation: float 6s ease-in-out infinite; }
+      .animate-pulse-glow { animation: pulseGlow 8s ease-in-out infinite; }
+
+      .glass-panel {
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      }
+      .glass-panel-glow {
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        box-shadow: 0 0 30px rgba(14, 165, 233, 0.15), 0 20px 50px rgba(0, 0, 0, 0.6);
+      }
+      .glass-input {
+        background: rgba(30, 41, 59, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.2s ease;
+      }
+      .glass-input:focus {
+        background: rgba(30, 41, 59, 0.85);
+        border-color: rgba(56, 189, 248, 0.6);
+        box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+        outline: none;
+      }
+      .text-gradient {
+        background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-slate-100 antialiased min-h-screen pb-12">
+    <div id="root"></div>
+
+    <!-- Live Server React App Script -->
+    <script type="text/babel">
+      const { useState, useEffect, createContext, useContext, useCallback } = React;
+
+      // Mock Storage & API Layer
+      const MOCK_USERS_KEY = 'codex_mock_registered_users';
+      
+      const getMockUsers = () => {
+        const stored = localStorage.getItem(MOCK_USERS_KEY);
+        if (stored) {
+          try { return JSON.parse(stored); } catch {}
+        }
+        return [{
+          id: 'usr_demo_101',
+          name: 'Alex Mercer',
+          email: 'alex@codex.ai',
+          password: 'password123',
+          role: 'Full Stack Candidate',
+          interviewsCompleted: 14,
+          avgScore: 92
+        }];
+      };
+
+      const generateFakeJWT = (userId, email) => {
+        const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+        const payload = btoa(JSON.stringify({ sub: userId, email, exp: Math.floor(Date.now() / 1000) + 86400 }));
+        const signature = btoa("codex_secret_signature_key_2026");
+        return `${header}.${payload}.${signature}`;
+      };
+
+      const apiService = {
+        login: async (email, password) => {
+          await new Promise(r => setTimeout(r, 400));
+          const users = getMockUsers();
+          const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+          if (!user) throw new Error('Invalid email or password. Please check your credentials.');
+          const token = generateFakeJWT(user.id, user.email);
+          const { password: _, ...userNoPass } = user;
+          return { token, user: userNoPass };
+        },
+        register: async (name, email, password) => {
+          await new Promise(r => setTimeout(r, 500));
+          const users = getMockUsers();
+          if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+            throw new Error('An account with this email address already exists.');
+          }
+          const newUser = {
+            id: `usr_${Date.now()}`,
+            name, email, password,
+            role: 'AI Candidate',
+            interviewsCompleted: 0,
+            avgScore: 0
+          };
+          users.push(newUser);
+          localStorage.setItem(MOCK_USERS_KEY, JSON.stringify(users));
+          const token = generateFakeJWT(newUser.id, newUser.email);
+          const { password: _, ...userNoPass } = newUser;
+          return { token, user: userNoPass };
+        }
+      };
+
+      // Icon Component Wrapper using Lucide
+      const Icon = ({ name, className = "w-4 h-4" }) => {
+        const ref = React.useRef(null);
+        useEffect(() => {
+          if (ref.current && window.lucide) {
+            ref.current.innerHTML = `<i data-lucide="${name}" class="${className}"></i>`;
+            window.lucide.createIcons({
+              targets: [ref.current]
+            });
+          }
+        }, [name, className]);
+        return <span ref={ref} className="inline-flex items-center justify-center"></span>;
+      };
+
+      // App Component
+      function App() {
+        const [user, setUser] = useState(null);
+        const [token, setToken] = useState(null);
+        const [view, setView] = useState('login'); // 'login', 'register', 'dashboard'
+        const [loading, setLoading] = useState(false);
+        const [error, setError] = useState(null);
+
+        // Form fields
+        const [email, setEmail] = useState('');
+        const [password, setPassword] = useState('');
+        const [name, setName] = useState('');
+        const [confirmPassword, setConfirmPassword] = useState('');
+        const [rememberMe, setRememberMe] = useState(true);
+        const [showPassword, setShowPassword] = useState(false);
+        const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+        const [acceptTerms, setAcceptTerms] = useState(false);
+        const [copiedToken, setCopiedToken] = useState(false);
+        const [valErrors, setValErrors] = useState({});
+
+        // Initialize Session
+        useEffect(() => {
+          const t = localStorage.getItem('codex_token') || sessionStorage.getItem('codex_token');
+          const u = localStorage.getItem('codex_user') || sessionStorage.getItem('codex_user');
+          if (t && u) {
+            try {
+              setToken(t);
+              setUser(JSON.parse(u));
+              setView('dashboard');
+            } catch {}
+          }
+        }, []);
+
+        const handleLogin = async (e) => {
+          if (e) e.preventDefault();
+          setError(null);
+          const errs = {};
+          if (!email) errs.email = 'Email address is required';
+          else if (!/\S+@\S+\.\S+/.test(email)) errs.email = 'Enter a valid email';
+          if (!password) errs.password = 'Password is required';
+          if (Object.keys(errs).length > 0) { setValErrors(errs); return; }
+
+          setLoading(true);
+          try {
+            const res = await apiService.login(email, password);
+            const storage = rememberMe ? localStorage : sessionStorage;
+            storage.setItem('codex_token', res.token);
+            storage.setItem('codex_user', JSON.stringify(res.user));
+            setToken(res.token);
+            setUser(res.user);
+            setView('dashboard');
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const handleRegister = async (e) => {
+          if (e) e.preventDefault();
+          setError(null);
+          const errs = {};
+          if (!name.trim()) errs.name = 'Full name is required';
+          if (!email) errs.email = 'Email address is required';
+          else if (!/\S+@\S+\.\S+/.test(email)) errs.email = 'Enter a valid email';
+          if (!password) errs.password = 'Password is required';
+          else if (password.length < 8) errs.password = 'Password must be at least 8 characters';
+          if (password !== confirmPassword) errs.confirmPassword = 'Passwords do not match';
+          if (!acceptTerms) errs.acceptTerms = 'You must agree to the Terms of Service';
+          if (Object.keys(errs).length > 0) { setValErrors(errs); return; }
+
+          setLoading(true);
+          try {
+            const res = await apiService.register(name, email, password);
+            localStorage.setItem('codex_token', res.token);
+            localStorage.setItem('codex_user', JSON.stringify(res.user));
+            setToken(res.token);
+            setUser(res.user);
+            setView('dashboard');
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const handleLogout = () => {
+          localStorage.removeItem('codex_token');
+          localStorage.removeItem('codex_user');
+          sessionStorage.removeItem('codex_token');
+          sessionStorage.removeItem('codex_user');
+          setToken(null);
+          setUser(null);
+          setView('login');
+          setError(null);
+        };
+
+        const handleCopyToken = () => {
+          if (token) {
+            navigator.clipboard.writeText(token);
+            setCopiedToken(true);
+            setTimeout(() => setCopiedToken(false), 2000);
+          }
+        };
+
+        const forceDashboard = () => {
+          const fakeUser = {
+            id: 'usr_demo_101',
+            name: 'Alex Mercer',
+            email: 'alex@codex.ai',
+            role: 'Full Stack Candidate',
+            interviewsCompleted: 14,
+            avgScore: 92
+          };
+          const fakeToken = generateFakeJWT(fakeUser.id, fakeUser.email);
+          setUser(fakeUser);
+          setToken(fakeToken);
+          localStorage.setItem('codex_token', fakeToken);
+          localStorage.setItem('codex_user', JSON.stringify(fakeUser));
+          setView('dashboard');
+        };
+
+        const getPassStrength = (p) => {
+          if (!p) return { score: 0, label: '', color: 'bg-slate-700' };
+          let s = 0;
+          if (p.length >= 8) s++;
+          if (/[A-Z]/.test(p)) s++;
+          if (/[0-9]/.test(p)) s++;
+          if (/[^A-Za-z0-9]/.test(p)) s++;
+          if (s === 1) return { score: 25, label: 'Weak', color: 'bg-rose-500', text: 'text-rose-400' };
+          if (s === 2 || s === 3) return { score: 65, label: 'Medium', color: 'bg-amber-500', text: 'text-amber-400' };
+          if (s >= 4) return { score: 100, label: 'Strong', color: 'bg-emerald-500', text: 'text-emerald-400' };
+          return { score: 15, label: 'Very Weak', color: 'bg-rose-600', text: 'text-rose-500' };
+        };
+
+        const str = getPassStrength(password);
+
+        return (
+          <div className="relative min-h-screen flex flex-col">
+            {/* Live Server Interactive View Navigator Toolbar */}
+            <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50 glass-panel px-4 py-2 rounded-full border-cyan-500/30 flex items-center space-x-2 shadow-2xl text-xs font-mono">
+              <span className="text-slate-400 font-sans font-semibold mr-1 hidden sm:inline">LIVE PREVIEW ROUTER:</span>
+              <button 
+                onClick={() => { setView('login'); setError(null); }}
+                className={`px-3 py-1 rounded-full transition-all cursor-pointer ${view === 'login' ? 'bg-cyan-500 text-slate-950 font-bold' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'}`}
+              >
+                🔑 Login View
+              </button>
+              <button 
+                onClick={() => { setView('register'); setError(null); }}
+                className={`px-3 py-1 rounded-full transition-all cursor-pointer ${view === 'register' ? 'bg-cyan-500 text-slate-950 font-bold' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'}`}
+              >
+                📝 Register View
+              </button>
+              <button 
+                onClick={forceDashboard}
+                className={`px-3 py-1 rounded-full transition-all cursor-pointer ${view === 'dashboard' ? 'bg-cyan-500 text-slate-950 font-bold' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'}`}
+              >
+                🛡️ Dashboard View
+              </button>
+              {token && (
+                <button onClick={handleLogout} className="px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 cursor-pointer">
+                  Clear Session
+                </button>
+              )}
+            </div>
+
+            {/* Dashboard View */}
+            {view === 'dashboard' ? (
+              <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col relative overflow-hidden">
+                <div className="absolute top-0 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+                
+                <header className="border-b border-slate-800/80 glass-panel sticky top-0 z-30 px-6 py-3.5 flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold shadow-lg shadow-cyan-500/20">
+                      <Icon name="code-2" className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="font-heading text-lg font-bold tracking-wider text-slate-100 block leading-none">
+                        CODEX<span className="text-cyan-400">.AI</span>
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400">Interview Simulator Platform</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs font-mono text-cyan-400">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                      <span>AUTHENTICATED SESSION</span>
+                    </div>
+                    <button onClick={handleLogout} className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-semibold cursor-pointer">
+                      <Icon name="log-out" className="w-4 h-4" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </header>
+
+                <main className="flex-1 max-w-7xl w-full mx-auto p-6 lg:p-8 space-y-8">
+                  <div className="glass-panel p-8 rounded-2xl relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-500" />
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                      <div className="space-y-2">
+                        <div className="inline-flex items-center space-x-2 text-xs font-mono text-cyan-400 bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/20">
+                          <Icon name="sparkles" className="w-3.5 h-3.5" />
+                          <span>WELCOME BACK, CANDIDATE</span>
+                        </div>
+                        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-100 font-heading">
+                          Hello, <span className="text-gradient">{user?.name || 'Developer'}</span> 👋
+                        </h1>
+                        <p className="text-slate-400 text-sm max-w-2xl">
+                          Your AI interview simulator workspace is configured and ready. Choose a track below to start your live technical simulation.
+                        </p>
+                      </div>
+                      <button onClick={() => alert("Starting AI Mock Interview session...")} className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold text-sm shadow-xl shadow-cyan-500/25 flex items-center justify-center space-x-2.5 cursor-pointer">
+                        <Icon name="play" className="w-4 h-4" />
+                        <span>Launch Mock Interview</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="glass-panel p-6 rounded-2xl space-y-4">
+                      <div className="flex items-center space-x-3 text-cyan-400">
+                        <Icon name="user" className="w-5 h-5" />
+                        <h3 className="font-heading font-bold text-slate-100">User Profile</h3>
+                      </div>
+                      <div className="space-y-3 text-sm">
+                        <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                          <span className="text-xs text-slate-500 block font-mono">FULL NAME</span>
+                          <span className="font-semibold text-slate-200">{user?.name}</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                          <span className="text-xs text-slate-500 block font-mono">EMAIL ADDRESS</span>
+                          <span className="font-semibold text-slate-200">{user?.email}</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
+                          <div>
+                            <span className="text-xs text-slate-500 block font-mono">ROLE</span>
+                            <span className="font-semibold text-cyan-400">{user?.role || 'Full Stack Candidate'}</span>
+                          </div>
+                          <Icon name="shield" className="w-5 h-5 text-cyan-500/60" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="glass-panel p-6 rounded-2xl space-y-4 md:col-span-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3 text-indigo-400">
+                          <Icon name="key" className="w-5 h-5" />
+                          <h3 className="font-heading font-bold text-slate-100">Active JWT Authentication Token</h3>
+                        </div>
+                        <button onClick={handleCopyToken} className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-300 cursor-pointer">
+                          <Icon name={copiedToken ? "check-circle-2" : "copy"} className="w-3.5 h-3.5" />
+                          <span>{copiedToken ? "Copied!" : "Copy Token"}</span>
+                        </button>
+                      </div>
+                      <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 font-mono text-xs text-cyan-300/90 break-all">
+                        <span className="text-slate-500 block text-[10px] mb-1">HEADER.PAYLOAD.SIGNATURE</span>
+                        <span>{token}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-3 pt-1 text-xs">
+                        <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800 text-center">
+                          <span className="text-slate-500 block font-mono text-[10px]">COMPLETED</span>
+                          <span className="text-xl font-bold text-slate-100 font-heading">{user?.interviewsCompleted ?? 14}</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800 text-center">
+                          <span className="text-slate-500 block font-mono text-[10px]">AVG SCORE</span>
+                          <span className="text-xl font-bold text-emerald-400 font-heading">{user?.avgScore ?? 92}%</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800 text-center">
+                          <span className="text-slate-500 block font-mono text-[10px]">JWT SECURED</span>
+                          <span className="text-xl font-bold text-cyan-400 font-heading">ACTIVE</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </main>
+              </div>
+            ) : (
+              /* Auth Form Views (Login / Register) */
+              <div className="min-h-screen bg-slate-950 flex flex-col justify-center relative overflow-hidden text-slate-100">
+                <div className="absolute -top-40 -left-40 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none animate-pulse-glow" />
+                <div className="absolute top-1/2 -right-40 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none animate-pulse-glow" />
+
+                <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 relative z-10">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                    
+                    {/* Left Brand Panel */}
+                    <div className="lg:col-span-6 flex flex-col justify-center space-y-8 p-4 lg:pr-8">
+                      <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full glass-panel text-cyan-400 text-xs font-mono w-fit">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                        </span>
+                        <span>CODEX AI SIMULATOR v2.4</span>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-none font-heading">
+                          Elevate Your <br />
+                          <span className="text-gradient">Tech Interview</span> Mastery.
+                        </h1>
+                        <p className="text-slate-400 text-base sm:text-lg max-w-xl">
+                          Step into high-fidelity AI-simulated technical coding rounds, real-time feedback loops, and automated evaluations.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                        <div className="p-4 rounded-xl glass-panel">
+                          <div className="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-3">
+                            <Icon name="bot" className="w-5 h-5" />
+                          </div>
+                          <h3 className="text-sm font-semibold text-slate-200 font-heading">Adaptive AI Interviewer</h3>
+                          <p className="text-xs text-slate-400 mt-1">Contextual follow-ups based on code complexity.</p>
+                        </div>
+
+                        <div className="p-4 rounded-xl glass-panel">
+                          <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-3">
+                            <Icon name="terminal" className="w-5 h-5" />
+                          </div>
+                          <h3 className="text-sm font-semibold text-slate-200 font-heading">Live Code Sandbox</h3>
+                          <p className="text-xs text-slate-400 mt-1">Instant time and space complexity evaluation.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Form Card */}
+                    <div className="lg:col-span-6 flex justify-center">
+                      <div className="w-full max-w-md">
+                        <div className="glass-panel p-6 sm:p-8 rounded-2xl relative overflow-hidden">
+                          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-70" />
+                          
+                          <div className="mb-6">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold shadow-lg shadow-cyan-500/30">
+                                <Icon name="code-2" className="w-5 h-5" />
+                              </div>
+                              <span className="font-heading text-xl font-bold tracking-wider text-slate-100">
+                                CODEX<span className="text-cyan-400">.AI</span>
+                              </span>
+                            </div>
+                            <h2 className="text-2xl font-bold text-slate-100 font-heading">
+                              {view === 'login' ? 'Welcome Back' : 'Create Account'}
+                            </h2>
+                            <p className="text-slate-400 text-sm mt-1">
+                              {view === 'login' ? 'Sign in to continue your AI coding interview' : 'Join CODEX AI Simulator to supercharge your skills'}
+                            </p>
+                          </div>
+
+                          {error && (
+                            <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-start justify-between">
+                              <span>{error}</span>
+                              <button onClick={() => setError(null)} className="text-rose-400 underline text-xs">Dismiss</button>
+                            </div>
+                          )}
+
+                          {view === 'login' ? (
+                            <form onSubmit={handleLogin} className="space-y-4">
+                              <div>
+                                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Email</label>
+                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="alex@codex.ai" className="w-full px-4 py-2.5 rounded-xl glass-input text-slate-100 text-sm" />
+                                {valErrors.email && <p className="text-xs text-rose-400 mt-1">{valErrors.email}</p>}
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Password</label>
+                                <div className="relative">
+                                  <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••••••" className="w-full px-4 py-2.5 rounded-xl glass-input text-slate-100 text-sm pr-10" />
+                                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-slate-400 hover:text-slate-200">
+                                    <Icon name={showPassword ? "eye-off" : "eye"} className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                {valErrors.password && <p className="text-xs text-rose-400 mt-1">{valErrors.password}</p>}
+                              </div>
+
+                              <div className="flex items-center justify-between">
+                                <label className="flex items-center space-x-2 text-xs text-slate-400 cursor-pointer">
+                                  <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} className="rounded accent-cyan-500" />
+                                  <span>Remember session</span>
+                                </label>
+                              </div>
+
+                              <button type="submit" disabled={loading} className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold text-sm shadow-lg shadow-cyan-500/25 cursor-pointer">
+                                {loading ? 'Authenticating...' : 'Sign In to Dashboard'}
+                              </button>
+
+                              <button type="button" onClick={() => { setEmail('alex@codex.ai'); setPassword('password123'); setValErrors({}); }} className="w-full py-2 rounded-lg bg-cyan-500/10 text-cyan-400 text-xs font-mono hover:bg-cyan-500/20 border border-cyan-500/20 cursor-pointer">
+                                ⚡ Fill Demo Credentials (alex@codex.ai)
+                              </button>
+
+                              <p className="text-center text-xs text-slate-400 pt-2">
+                                Don't have an account?{' '}
+                                <button type="button" onClick={() => { setView('register'); setError(null); }} className="text-cyan-400 font-semibold underline">
+                                  Create Account
+                                </button>
+                              </p>
+                            </form>
+                          ) : (
+                            <form onSubmit={handleRegister} className="space-y-4">
+                              <div>
+                                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Full Name</label>
+                                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Sarah Connor" className="w-full px-4 py-2 rounded-xl glass-input text-slate-100 text-sm" />
+                                {valErrors.name && <p className="text-xs text-rose-400 mt-1">{valErrors.name}</p>}
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Email</label>
+                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="sarah@example.com" className="w-full px-4 py-2 rounded-xl glass-input text-slate-100 text-sm" />
+                                {valErrors.email && <p className="text-xs text-rose-400 mt-1">{valErrors.email}</p>}
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Password</label>
+                                <div className="relative">
+                                  <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 8 chars" className="w-full px-4 py-2 rounded-xl glass-input text-slate-100 text-sm pr-10" />
+                                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-2.5 text-slate-400">
+                                    <Icon name={showPassword ? "eye-off" : "eye"} className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                {password && (
+                                  <div className="mt-1">
+                                    <div className="flex justify-between text-[10px] text-slate-400">
+                                      <span>Strength:</span>
+                                      <span className={str.text}>{str.label}</span>
+                                    </div>
+                                    <div className="h-1 bg-slate-800 rounded-full overflow-hidden mt-0.5">
+                                      <div className={`h-full ${str.color}`} style={{ width: `${str.score}%` }} />
+                                    </div>
+                                  </div>
+                                )}
+                                {valErrors.password && <p className="text-xs text-rose-400 mt-1">{valErrors.password}</p>}
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Confirm Password</label>
+                                <div className="relative">
+                                  <input type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter password" className="w-full px-4 py-2 rounded-xl glass-input text-slate-100 text-sm pr-10" />
+                                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-2.5 text-slate-400">
+                                    <Icon name={showConfirmPassword ? "eye-off" : "eye"} className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                {valErrors.confirmPassword && <p className="text-xs text-rose-400 mt-1">{valErrors.confirmPassword}</p>}
+                              </div>
+
+                              <label className="flex items-center space-x-2 text-xs text-slate-400 cursor-pointer">
+                                <input type="checkbox" checked={acceptTerms} onChange={e => setAcceptTerms(e.target.checked)} className="rounded accent-cyan-500" />
+                                <span>I agree to Terms & Privacy Policy</span>
+                              </label>
+                              {valErrors.acceptTerms && <p className="text-xs text-rose-400">{valErrors.acceptTerms}</p>}
+
+                              <button type="submit" disabled={loading} className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold text-sm shadow-lg shadow-cyan-500/25 cursor-pointer">
+                                {loading ? 'Creating Account...' : 'Create Account'}
+                              </button>
+
+                              <p className="text-center text-xs text-slate-400 pt-2">
+                                Already have an account?{' '}
+                                <button type="button" onClick={() => { setView('login'); setError(null); }} className="text-cyan-400 font-semibold underline">
+                                  Sign In
+                                </button>
+                              </p>
+                            </form>
+                          )}
+
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+  </body>
+</html>
