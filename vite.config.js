@@ -387,6 +387,33 @@ function mockApiPlugin() {
             return;
           }
 
+          // --- GET /api/interviews/session/:id ---
+          const sessionGetRegex = /^\/api\/interviews\/session\/(session-\d+)$/;
+          const sessionGetMatch = req.url.match(sessionGetRegex);
+          if (sessionGetMatch && req.method === 'GET') {
+            const sessionId = sessionGetMatch[1];
+            const session = db.activeSessions[sessionId];
+            if (session) {
+              res.end(JSON.stringify({
+                id: session.id,
+                role: session.role,
+                type: session.type,
+                difficulty: session.difficulty,
+                questions: session.questions
+              }));
+            } else {
+              const questionsPool = questionsDb['React']['Medium'];
+              res.end(JSON.stringify({
+                id: sessionId,
+                role: 'React',
+                type: 'Technical',
+                difficulty: 'Medium',
+                questions: questionsPool
+              }));
+            }
+            return;
+          }
+
           // --- POST /api/interviews/start ---
           if (req.url === '/api/interviews/start' && req.method === 'POST') {
             const body = await parseBody(req);

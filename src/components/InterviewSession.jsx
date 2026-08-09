@@ -26,19 +26,16 @@ export default function InterviewSession() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get(`/api/interviews/history`)
+    axios.get(`/api/interviews/session/${sessionId}`)
       .then(res => {
-        axios.post(`/api/interviews/start`, { type: 'Technical', technology: 'React', difficulty: 'Medium' })
-          .then(startRes => {
-            setQuestions(startRes.data.questions);
-            setSessionDetails({
-              id: sessionId,
-              role: 'React',
-              type: 'Technical',
-              difficulty: 'Medium'
-            });
-            setLoading(false);
-          });
+        setQuestions(res.data.questions || []);
+        setSessionDetails({
+          id: res.data.id,
+          role: res.data.role,
+          type: res.data.type,
+          difficulty: res.data.difficulty
+        });
+        setLoading(false);
       })
       .catch(err => {
         console.error('Session loading failed:', err);
@@ -118,7 +115,7 @@ export default function InterviewSession() {
           if (currentRec) {
             setAnswer(prev => {
               const prefix = prev ? prev + " " : "";
-              return prefix + "In my experience, resolving this involves analyzing the virtual DOM modifications, isolating state variables, and using hook dependencies like useEffect or useCallback to control performance leaks efficiently.";
+              return prefix + "In my experience, resolving this involves analyzing performance trade-offs, isolating state variables, and using appropriate architectural principles efficiently.";
             });
             return false;
           }
@@ -139,7 +136,7 @@ export default function InterviewSession() {
   }
 
   const isHR = sessionDetails?.type === 'HR';
-  const progressPercent = ((currentIdx + 1) / questions.length) * 100;
+  const progressPercent = questions.length > 0 ? ((currentIdx + 1) / questions.length) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col justify-between select-none animate-fade-in">
@@ -232,7 +229,7 @@ export default function InterviewSession() {
                 <div className="h-4 w-px bg-slate-800 mx-1"></div>
                 <span className="font-mono flex items-center gap-1.5">
                   <Terminal className="w-3.5 h-3.5 text-brand-400" /> 
-                  {isHR ? 'behavioral_answer.txt' : 'react_component.jsx'}
+                  {isHR ? 'behavioral_answer.txt' : 'code_solution.jsx'}
                 </span>
               </div>
 
@@ -259,7 +256,7 @@ export default function InterviewSession() {
                 placeholder={
                   isHR 
                     ? "Type your response using Situation, Task, Action, and Result parameters..."
-                    : "// Write explanation or code block here...\nfunction Component() {\n  return (\n    <div>...</div>\n  );\n}"
+                    : "// Write explanation or code block here...\nfunction solution() {\n  return (\n    <div>...</div>\n  );\n}"
                 }
                 className="flex-1 bg-transparent text-slate-300 placeholder-slate-700 border-none resize-none focus:outline-none h-full outline-none leading-6 w-full"
                 spellCheck="false"
