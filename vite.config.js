@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from 'tailwindcss';
+import autoprefixer from 'autoprefixer';
 
 // In-Memory Database for Mock REST API
 const db = {
@@ -230,8 +232,10 @@ function mockApiPlugin() {
         res.setHeader('Content-Type', 'application/json');
 
         try {
+          const cleanUrl = req.url.split('?')[0];
+
           // --- POST /api/auth/login ---
-          if (req.url === '/api/auth/login' && req.method === 'POST') {
+          if ((cleanUrl === '/api/auth/login' || cleanUrl === '/api/auth/login/') && req.method === 'POST') {
             const body = await parseBody(req);
             const user = db.users.find(u => u.email.toLowerCase() === (body.email || '').toLowerCase());
             
@@ -253,7 +257,7 @@ function mockApiPlugin() {
           }
 
           // --- POST /api/auth/register ---
-          if (req.url === '/api/auth/register' && req.method === 'POST') {
+          if ((cleanUrl === '/api/auth/register' || cleanUrl === '/api/auth/register/') && req.method === 'POST') {
             const body = await parseBody(req);
             const existing = db.users.find(u => u.email.toLowerCase() === (body.email || '').toLowerCase());
 
@@ -285,7 +289,7 @@ function mockApiPlugin() {
           }
 
           // --- GET /api/auth/me ---
-          if (req.url === '/api/auth/me' && req.method === 'GET') {
+          if ((cleanUrl === '/api/auth/me' || cleanUrl === '/api/auth/me/') && req.method === 'GET') {
             const user = db.users[0];
             const { password, ...userWithoutPass } = user;
             res.end(JSON.stringify({ success: true, user: userWithoutPass }));
@@ -293,19 +297,19 @@ function mockApiPlugin() {
           }
 
           // --- POST /api/auth/logout ---
-          if (req.url === '/api/auth/logout' && req.method === 'POST') {
+          if ((cleanUrl === '/api/auth/logout' || cleanUrl === '/api/auth/logout/') && req.method === 'POST') {
             res.end(JSON.stringify({ success: true }));
             return;
           }
 
           // --- GET /api/profile ---
-          if (req.url === '/api/profile' && req.method === 'GET') {
+          if (cleanUrl === '/api/profile' && req.method === 'GET') {
             res.end(JSON.stringify(db.profile));
             return;
           }
 
           // --- POST /api/profile ---
-          if (req.url === '/api/profile' && req.method === 'POST') {
+          if (cleanUrl === '/api/profile' && req.method === 'POST') {
             const body = await parseBody(req);
             db.profile = { ...db.profile, ...body };
             res.end(JSON.stringify({ success: true, profile: db.profile }));
@@ -313,7 +317,7 @@ function mockApiPlugin() {
           }
 
           // --- GET /api/dashboard/stats ---
-          if (req.url === '/api/dashboard/stats' && req.method === 'GET') {
+          if (cleanUrl === '/api/dashboard/stats' && req.method === 'GET') {
             const completedCount = db.history.length;
             const totalScore = db.history.reduce((acc, item) => acc + item.score, 0);
             const averageScore = completedCount > 0 ? Math.round(totalScore / completedCount) : 0;
@@ -330,7 +334,7 @@ function mockApiPlugin() {
           }
 
           // --- GET /api/dashboard/activity ---
-          if (req.url === '/api/dashboard/activity' && req.method === 'GET') {
+          if (cleanUrl === '/api/dashboard/activity' && req.method === 'GET') {
             const activity = db.history.slice(-5).reverse().map(item => ({
               id: item.id,
               date: item.date,
@@ -342,7 +346,7 @@ function mockApiPlugin() {
           }
 
           // --- GET /api/dashboard/charts ---
-          if (req.url === '/api/dashboard/charts' && req.method === 'GET') {
+          if (cleanUrl === '/api/dashboard/charts' && req.method === 'GET') {
             const chartData = db.history.map((item, idx) => ({
               attempt: idx + 1,
               date: item.date.slice(5),
@@ -354,7 +358,7 @@ function mockApiPlugin() {
           }
 
           // --- GET /api/skills/status ---
-          if (req.url === '/api/skills/status' && req.method === 'GET') {
+          if (cleanUrl === '/api/skills/status' && req.method === 'GET') {
             res.end(JSON.stringify({
               skills: db.skills,
               recommendations: [
@@ -382,14 +386,14 @@ function mockApiPlugin() {
           }
 
           // --- GET /api/interviews/history ---
-          if (req.url === '/api/interviews/history' && req.method === 'GET') {
+          if (cleanUrl === '/api/interviews/history' && req.method === 'GET') {
             res.end(JSON.stringify(db.history));
             return;
           }
 
           // --- GET /api/interviews/session/:id ---
           const sessionGetRegex = /^\/api\/interviews\/session\/(session-\d+)$/;
-          const sessionGetMatch = req.url.match(sessionGetRegex);
+          const sessionGetMatch = cleanUrl.match(sessionGetRegex);
           if (sessionGetMatch && req.method === 'GET') {
             const sessionId = sessionGetMatch[1];
             const session = db.activeSessions[sessionId];
@@ -415,7 +419,7 @@ function mockApiPlugin() {
           }
 
           // --- POST /api/interviews/start ---
-          if (req.url === '/api/interviews/start' && req.method === 'POST') {
+          if (cleanUrl === '/api/interviews/start' && req.method === 'POST') {
             const body = await parseBody(req);
             const { type, technology, difficulty } = body;
 
@@ -445,7 +449,7 @@ function mockApiPlugin() {
 
           // --- POST /api/interviews/:id/submit ---
           const submitRegex = /^\/api\/interviews\/(session-\d+)\/submit$/;
-          const submitMatch = req.url.match(submitRegex);
+          const submitMatch = cleanUrl.match(submitRegex);
           if (submitMatch && req.method === 'POST') {
             const sessionId = submitMatch[1];
             const session = db.activeSessions[sessionId];
@@ -504,7 +508,7 @@ function mockApiPlugin() {
 
           // --- POST /api/interviews/:id/finish ---
           const finishRegex = /^\/api\/interviews\/(session-\d+)\/finish$/;
-          const finishMatch = req.url.match(finishRegex);
+          const finishMatch = cleanUrl.match(finishRegex);
           if (finishMatch && req.method === 'POST') {
             const sessionId = finishMatch[1];
             const session = db.activeSessions[sessionId];
@@ -595,6 +599,14 @@ function mockApiPlugin() {
 
 export default defineConfig({
   plugins: [react(), mockApiPlugin()],
+  css: {
+    postcss: {
+      plugins: [
+        tailwindcss(),
+        autoprefixer(),
+      ],
+    },
+  },
   server: {
     port: 3000,
     host: true

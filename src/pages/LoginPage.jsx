@@ -55,7 +55,7 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Error Alert */}
         {error && (
-          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2.5 animate-slide-in">
+          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2.5">
             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
@@ -73,7 +73,7 @@ export default function LoginPage() {
               setEmail('alex@codex.ai');
               setPassword('password123');
             }}
-            className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 hover:underline cursor-pointer"
+            className="px-2 py-1 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 text-cyan-300 rounded text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
           >
             Auto Fill
           </button>
@@ -96,7 +96,7 @@ export default function LoginPage() {
                 if (validationErrors.email) setValidationErrors(prev => ({ ...prev, email: null }));
               }}
               placeholder="alex@codex.ai"
-              className={`w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500 transition-all ${
+              className={`w-full pl-10 pr-4 py-2.5 glass-input text-slate-100 placeholder-slate-500 text-sm focus:outline-none transition-all ${
                 validationErrors.email ? 'border-rose-500/60' : ''
               }`}
             />
@@ -128,7 +128,7 @@ export default function LoginPage() {
                 if (validationErrors.password) setValidationErrors(prev => ({ ...prev, password: null }));
               }}
               placeholder="••••••••"
-              className={`w-full pl-10 pr-11 py-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500 transition-all ${
+              className={`w-full pl-10 pr-11 py-2.5 glass-input text-slate-100 placeholder-slate-500 text-sm focus:outline-none transition-all ${
                 validationErrors.password ? 'border-rose-500/60' : ''
               }`}
             />
@@ -165,7 +165,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:via-blue-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed group cursor-pointer"
+          className="w-full btn-primary py-3 px-4 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed group cursor-pointer"
         >
           {isSubmitting ? (
             <>
