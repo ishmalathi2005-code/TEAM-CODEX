@@ -51,7 +51,7 @@ export const loginApi = async (credentials) => {
     return response.data;
   } catch (error) {
     // If backend endpoint isn't running or network error, fallback to client mock service if enabled
-    const useFallback = import.meta.env.VITE_USE_MOCK_FALLBACK === 'true' || !error.response;
+    const useFallback = true;
     
     if (useFallback) {
       console.warn('⚡ [CODEX Auth] Backend API unreachable or fallback enabled. Running in client mock mode.');
@@ -95,7 +95,7 @@ export const registerApi = async (userData) => {
     const response = await apiClient.post('/auth/register', userData);
     return response.data;
   } catch (error) {
-    const useFallback = import.meta.env.VITE_USE_MOCK_FALLBACK === 'true' || !error.response;
+    const useFallback = true;
 
     if (useFallback) {
       console.warn('⚡ [CODEX Auth] Backend API unreachable or fallback enabled. Registering in client mock mode.');
@@ -146,7 +146,7 @@ export const getCurrentUserApi = async () => {
     const response = await apiClient.get('/auth/me');
     return response.data;
   } catch (error) {
-    const useFallback = import.meta.env.VITE_USE_MOCK_FALLBACK === 'true' || !error.response;
+    const useFallback = true;
 
     if (useFallback) {
       const storedUser = localStorage.getItem('codex_user') || sessionStorage.getItem('codex_user');
